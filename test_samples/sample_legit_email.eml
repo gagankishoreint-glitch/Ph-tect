@@ -1,0 +1,30 @@
+Delivered-To: user@example.com
+Received: by 2002:a17:906:1234 with SMTP id cd567;
+        Tue, 06 Oct 2026 08:15:20 -0700 (PDT)
+Return-Path: <3g4x-notifications@github.com>
+Received: from out-21.smtp.github.com (out-21.smtp.github.com. [192.30.252.204])
+        by mx.google.com with ESMTPS id q18si9876543qke.21.2026.10.06.08.15.19
+        for <user@example.com>
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Tue, 06 Oct 2026 08:15:19 -0700 (PDT)
+Received-SPF: pass (google.com: domain of 3g4x-notifications@github.com designates 192.30.252.204 as permitted sender) client-ip=192.30.252.204;
+Authentication-Results: mx.google.com;
+       dkim=pass header.i=@github.com header.s=pf2014 header.b=AbCdEf;
+       spf=pass (google.com: domain of 3g4x-notifications@github.com designates 192.30.252.204 as permitted sender) smtp.mailfrom=3g4x-notifications@github.com;
+       dmarc=pass (p=REJECT sp=REJECT dis=NONE) header.from=github.com
+From: GitHub Notifications <notifications@github.com>
+Reply-To: support@github.com
+To: user@example.com
+Subject: [GitHub] Pull Request #14 merged into main
+Date: Tue, 06 Oct 2026 15:15:00 +0000
+Message-ID: <github/Ph-tect/pull/14@github.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+
+Hi team,
+
+Pull request #14 "Enhance DNS and header inspection" has been merged into main.
+You can view the full changes and commit logs at https://github.com/gagankishoreint-glitch/Ph-tect.
+
+Best,
+GitHub Notifications Team

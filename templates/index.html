@@ -1,0 +1,1869 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Phishing Intelligence Platform — Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Serif+Display&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    :root {
+      --white:   #ffffff;
+      --off:     #f7f7f5;
+      --border:  #e4e4e0;
+      --text:    #1a1a1a;
+      --muted:   #6b6b6b;
+      --accent:  #1d4ed8;
+      --accent-h:#1e40af;
+      --danger:  #dc2626;
+      --safe:    #16a34a;
+      --warn:    #d97706;
+      --crit:    #991b1b;
+      --r:       6px;
+      --sans:    'DM Sans', sans-serif;
+      --serif:   'DM Serif Display', serif;
+      --shadow:  0 1px 3px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.04);
+      --shadow-md: 0 4px 12px rgba(0,0,0,.08);
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { font-size: 16px; }
+    body { font-family: var(--sans); background: var(--off); color: var(--text); line-height: 1.6; min-height: 100vh; }
+    a { color: inherit; text-decoration: none; }
+    input, textarea, button { font-family: var(--sans); }
+
+    /* ── NAV ── */
+    nav {
+      position: sticky; top: 0; z-index: 100;
+      background: rgba(255,255,255,.95);
+      backdrop-filter: blur(8px);
+      border-bottom: 1px solid var(--border);
+      padding: 0 2rem;
+      display: flex; align-items: center; justify-content: space-between;
+      height: 58px;
+    }
+    .nav-brand {
+      display: flex; align-items: center; gap: .5rem;
+      font-weight: 600; font-size: .95rem; color: var(--text);
+    }
+    .nav-brand svg { width: 18px; height: 18px; color: var(--accent); flex-shrink: 0; }
+    .nav-right { display: flex; align-items: center; gap: 1rem; }
+    .nav-back {
+      font-size: .8rem; color: var(--muted);
+      display: flex; align-items: center; gap: .3rem;
+      transition: color .2s;
+    }
+    .nav-back:hover { color: var(--text); }
+    .nav-version {
+      font-size: .72rem; color: var(--muted);
+      background: var(--off); border: 1px solid var(--border);
+      padding: .2rem .6rem; border-radius: 999px;
+    }
+
+    /* ── LAYOUT ── */
+    .app {
+      max-width: 960px; margin: 0 auto;
+      padding: 1.5rem 1.5rem 4rem;
+    }
+
+    /* ── STATS STRIP ── */
+    .stats-strip {
+      display: grid; grid-template-columns: repeat(4,1fr);
+      gap: 1px; background: var(--border);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      overflow: hidden;
+      margin-bottom: 1.5rem;
+    }
+    .stat-cell {
+      background: var(--white); padding: 1rem 1.25rem;
+      display: flex; flex-direction: column; gap: .15rem;
+    }
+    .stat-val {
+      font-size: 1.5rem; font-weight: 600; line-height: 1;
+      font-family: var(--serif);
+    }
+    .stat-val.c-danger { color: var(--danger); }
+    .stat-val.c-accent { color: var(--accent); }
+    .stat-val.c-safe   { color: var(--safe); }
+    .stat-lbl { font-size: .75rem; color: var(--muted); }
+
+    /* ── TABS ── */
+    .tabs-bar {
+      display: flex; gap: 2px;
+      background: var(--border);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      padding: 3px;
+      margin-bottom: 1.25rem;
+      overflow-x: auto;
+    }
+    .tab {
+      flex: 1; display: flex; align-items: center; justify-content: center;
+      gap: .4rem; padding: .55rem .75rem;
+      font-size: .83rem; font-weight: 500; color: var(--muted);
+      background: transparent; border: none; cursor: pointer;
+      border-radius: 4px; white-space: nowrap;
+      transition: background .15s, color .15s;
+    }
+    .tab:hover { background: var(--white); color: var(--text); }
+    .tab.active { background: var(--white); color: var(--accent); box-shadow: var(--shadow); }
+    .tab-icon { font-size: .95rem; }
+
+    .tab-content { display: none; }
+    .tab-content.active { display: block; animation: fadeIn .2s ease; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+    /* ── CARD ── */
+    .card {
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      overflow: hidden;
+      margin-bottom: 1.25rem;
+      box-shadow: var(--shadow);
+    }
+    .card-head {
+      padding: 1.25rem 1.5rem;
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; gap: .75rem;
+    }
+    .card-head h2 { font-size: 1rem; font-weight: 600; }
+    .card-head p  { font-size: .83rem; color: var(--muted); margin-top: .1rem; }
+    .card-head-icon { font-size: 1.1rem; }
+    .card-body { padding: 1.5rem; }
+
+    /* ── FORM ── */
+    .form-group { margin-bottom: 1.1rem; }
+    .form-group label {
+      display: block; font-size: .8rem; font-weight: 500;
+      color: var(--muted); margin-bottom: .4rem; letter-spacing: .02em;
+    }
+    input[type="text"], textarea {
+      width: 100%; padding: .65rem .9rem;
+      background: var(--off); border: 1px solid var(--border);
+      border-radius: var(--r); color: var(--text); font-size: .9rem;
+      transition: border-color .2s, box-shadow .2s;
+    }
+    input[type="text"]:focus, textarea:focus {
+      outline: none; border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(29,78,216,.1);
+      background: var(--white);
+    }
+    input::placeholder, textarea::placeholder { color: #aaa; }
+    textarea { resize: vertical; min-height: 100px; }
+
+    /* ── BUTTONS ── */
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center;
+      gap: .4rem; padding: .65rem 1.4rem;
+      font-size: .875rem; font-weight: 500;
+      border: none; border-radius: var(--r); cursor: pointer;
+      transition: all .2s; white-space: nowrap;
+    }
+    .btn-primary { background: var(--accent); color: var(--white); }
+    .btn-primary:hover { background: var(--accent-h); box-shadow: 0 4px 12px rgba(29,78,216,.2); }
+    .btn-secondary { background: var(--off); color: var(--text); border: 1px solid var(--border); }
+    .btn-secondary:hover { border-color: #bbb; background: #efefed; }
+    .btn-danger { background: #fee2e2; color: var(--danger); border: 1px solid #fecaca; }
+    .btn-danger:hover { background: #fecaca; }
+    .btn-full { width: 100%; }
+    .btn-sm { padding: .4rem .9rem; font-size: .8rem; }
+    .btn:disabled { opacity: .45; cursor: not-allowed; }
+
+    .btn-row { display: flex; gap: .6rem; flex-wrap: wrap; }
+
+    /* ── RESULT CARD ── */
+    .result-card {
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      overflow: hidden;
+      margin-bottom: 1.25rem;
+      box-shadow: var(--shadow);
+      display: none;
+    }
+    .result-card.show { display: block; animation: fadeIn .3s ease; }
+
+    .result-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 1.25rem 1.5rem;
+      border-bottom: 1px solid var(--border);
+      border-left: 4px solid var(--border);
+    }
+    .result-header.critical { border-left-color: var(--crit);  background: #fff5f5; }
+    .result-header.high     { border-left-color: var(--danger); background: #fff8f8; }
+    .result-header.medium   { border-left-color: var(--warn);  background: #fffbf0; }
+    .result-header.low      { border-left-color: #0891b2;      background: #f0f9ff; }
+    .result-header.safe     { border-left-color: var(--safe);  background: #f0fdf4; }
+
+    .result-badge { display: flex; align-items: center; gap: .75rem; }
+    .result-icon  { font-size: 1.75rem; line-height: 1; }
+    .result-level { font-size: 1.1rem; font-weight: 700; }
+    .result-score-wrap { text-align: right; }
+    .result-score-label { font-size: .72rem; color: var(--muted); letter-spacing: .06em; text-transform: uppercase; }
+    .result-score { font-family: var(--serif); font-size: 2rem; font-weight: 700; line-height: 1.1; }
+    .result-score-max { font-size: .85rem; color: var(--muted); }
+
+    .result-body { padding: 1.5rem; }
+
+    .advice-box {
+      padding: .875rem 1rem;
+      background: var(--off); border-radius: var(--r);
+      border-left: 3px solid var(--accent);
+      font-size: .9rem; font-weight: 500;
+      margin-bottom: 1.25rem;
+    }
+
+    .result-actions { display: flex; gap: .5rem; flex-wrap: wrap; margin-bottom: 1.25rem; }
+
+    /* ── SECTION INSIDE RESULT ── */
+    .res-section { margin-bottom: 1.25rem; }
+    .res-section-title {
+      font-size: .78rem; font-weight: 600; letter-spacing: .07em;
+      text-transform: uppercase; color: var(--muted);
+      margin-bottom: .6rem; padding-bottom: .4rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    /* ── FINDINGS ── */
+    .findings { display: flex; flex-direction: column; gap: .4rem; }
+    .finding {
+      display: flex; align-items: flex-start; gap: .6rem;
+      padding: .65rem .875rem;
+      background: var(--off); border-radius: var(--r);
+      font-size: .875rem; border: 1px solid var(--border);
+    }
+    .finding-dot {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: var(--warn); flex-shrink: 0; margin-top: .45rem;
+    }
+    .finding-dot.red { background: var(--danger); }
+
+    /* ── INFO GRID ── */
+    .info-grid {
+      display: grid; grid-template-columns: repeat(2,1fr); gap: .5rem;
+    }
+    .info-cell {
+      padding: .75rem .875rem;
+      background: var(--off); border-radius: var(--r);
+      border: 1px solid var(--border);
+    }
+    .info-cell-label { font-size: .7rem; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; margin-bottom: .2rem; }
+    .info-cell-val   { font-size: .875rem; font-weight: 500; word-break: break-all; }
+
+    /* ── COLLAPSIBLE ── */
+    .collapsible { margin-bottom: .5rem; }
+    .collapsible-toggle {
+      width: 100%; display: flex; justify-content: space-between; align-items: center;
+      padding: .75rem 1rem;
+      background: var(--off); border: 1px solid var(--border);
+      border-radius: var(--r); font-size: .875rem; font-weight: 500;
+      cursor: pointer; transition: background .2s;
+      color: var(--text);
+    }
+    .collapsible-toggle:hover { background: #efefed; }
+    .collapsible-toggle.open { border-radius: var(--r) var(--r) 0 0; border-bottom-color: transparent; }
+    .collapsible-body {
+      display: none; padding: 1rem;
+      border: 1px solid var(--border); border-top: none;
+      border-radius: 0 0 var(--r) var(--r);
+    }
+    .collapsible-body.open { display: block; }
+    .chevron { transition: transform .2s; font-size: .75rem; }
+    .chevron.open { transform: rotate(180deg); }
+
+    /* ── ML BOX ── */
+    .ml-box {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: .875rem 1rem;
+      background: var(--off); border: 1px solid var(--border);
+      border-radius: var(--r);
+    }
+    .ml-box-label { font-size: .83rem; color: var(--muted); }
+    .ml-box-val   { font-size: .95rem; font-weight: 600; }
+
+    /* ── URL LIST ── */
+    .url-list { display: flex; flex-direction: column; gap: .4rem; }
+    .url-item {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 1rem; padding: .65rem .875rem;
+      background: var(--off); border: 1px solid var(--border);
+      border-radius: var(--r); font-size: .83rem;
+    }
+    .url-item-text { font-family: monospace; color: var(--accent); word-break: break-all; flex: 1; }
+
+    /* ── QUICK RESULT ── */
+    .quick-result {
+      background: var(--white); border: 1px solid var(--border);
+      border-radius: var(--r); padding: 1.25rem 1.5rem;
+      margin-bottom: 1.25rem; display: none;
+      box-shadow: var(--shadow);
+    }
+    .quick-result.show { display: block; }
+    .quick-verdict { font-size: 1.25rem; font-weight: 700; margin-bottom: .4rem; }
+    .quick-details { font-size: .875rem; color: var(--muted); line-height: 1.6; }
+
+    /* ── SUBSECTION ── */
+    .subsection {
+      padding-top: 1.25rem; margin-top: 1.25rem;
+      border-top: 1px solid var(--border);
+    }
+    .subsection h3 { font-size: .9rem; font-weight: 600; margin-bottom: .875rem; }
+
+    /* ── BULK ── */
+    .bulk-results {
+      background: var(--white); border: 1px solid var(--border);
+      border-radius: var(--r); overflow: hidden;
+      margin-bottom: 1.25rem; display: none;
+      box-shadow: var(--shadow);
+    }
+    .bulk-results.show { display: block; }
+    .bulk-item {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 1rem; padding: .875rem 1.25rem;
+      border-bottom: 1px solid var(--border); font-size: .875rem;
+    }
+    .bulk-item:last-child { border-bottom: none; }
+    .bulk-url { font-family: monospace; font-size: .82rem; flex: 1; word-break: break-all; }
+
+    /* ── PILL ── */
+    .pill {
+      font-size: .68rem; font-weight: 600; padding: .2rem .6rem;
+      border-radius: 999px; white-space: nowrap; letter-spacing: .03em;
+    }
+    .pill-danger  { background: #fee2e2; color: var(--danger); }
+    .pill-warn    { background: #fef3c7; color: var(--warn); }
+    .pill-safe    { background: #dcfce7; color: var(--safe); }
+    .pill-crit    { background: #fee2e2; color: var(--crit); font-weight: 700; }
+    .pill-neutral { background: var(--off); color: var(--muted); border: 1px solid var(--border); }
+
+    /* ── QR ── */
+    .qr-drop {
+      border: 2px dashed var(--border); border-radius: var(--r);
+      padding: 3rem 2rem; text-align: center; cursor: pointer;
+      transition: border-color .2s, background .2s;
+      margin-bottom: 1rem;
+    }
+    .qr-drop:hover, .qr-drop.over { border-color: var(--accent); background: #eff6ff; }
+    .qr-drop-icon { font-size: 2rem; margin-bottom: .75rem; }
+    .qr-drop p { font-size: .9rem; color: var(--muted); }
+    .qr-preview { text-align: center; margin-bottom: 1rem; }
+    .qr-preview img { max-width: 160px; border-radius: var(--r); border: 1px solid var(--border); }
+
+    /* ── HISTORY ── */
+    .stats-grid {
+      display: grid; grid-template-columns: repeat(4,1fr);
+      gap: .75rem; margin-bottom: 1.25rem;
+    }
+    .stat-box {
+      background: var(--white); border: 1px solid var(--border);
+      border-radius: var(--r); padding: 1rem 1.25rem;
+      box-shadow: var(--shadow);
+    }
+    .stat-box-val { font-family: var(--serif); font-size: 1.75rem; font-weight: 700; line-height: 1; }
+    .stat-box-val.danger { color: var(--danger); }
+    .stat-box-val.accent { color: var(--accent); }
+    .stat-box-lbl { font-size: .75rem; color: var(--muted); margin-top: .2rem; }
+
+    .search-row { display: flex; gap: .5rem; margin-bottom: .875rem; }
+    .search-row input { flex: 1; }
+
+    .filter-row { display: flex; gap: .4rem; margin-bottom: 1rem; }
+    .filter-btn {
+      font-size: .78rem; font-weight: 500; padding: .35rem .9rem;
+      background: var(--off); border: 1px solid var(--border);
+      border-radius: 999px; cursor: pointer; transition: all .2s; color: var(--muted);
+    }
+    .filter-btn:hover { border-color: #bbb; color: var(--text); }
+    .filter-btn.active { background: var(--accent); border-color: var(--accent); color: var(--white); }
+
+    .history-list { display: flex; flex-direction: column; gap: .5rem; max-height: 420px; overflow-y: auto; margin-bottom: 1rem; }
+    .history-item {
+      display: flex; align-items: center; gap: 1rem;
+      padding: .875rem 1rem;
+      background: var(--white); border: 1px solid var(--border);
+      border-radius: var(--r); font-size: .875rem;
+      transition: background .15s;
+    }
+    .history-item:hover { background: var(--off); }
+    .history-info { flex: 1; min-width: 0; }
+    .history-type { font-size: .7rem; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
+    .history-target { font-size: .875rem; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .history-time { font-size: .72rem; color: var(--muted); margin-top: .1rem; }
+
+    /* ── THREAT FEED ── */
+    .threat-feed { display: flex; flex-direction: column; gap: .5rem; max-height: 360px; overflow-y: auto; }
+    .threat-item {
+      padding: .875rem 1rem;
+      background: var(--white); border: 1px solid var(--border);
+      border-left: 3px solid var(--danger); border-radius: var(--r);
+    }
+    .threat-url { font-family: monospace; font-size: .8rem; color: var(--danger); word-break: break-all; margin-bottom: .2rem; }
+    .threat-meta { font-size: .72rem; color: var(--muted); }
+
+    /* ── LEARN ── */
+    .learn-section { margin-bottom: 1.5rem; }
+    .learn-section h3 { font-size: .95rem; font-weight: 600; margin-bottom: .875rem; }
+    .tips-grid { display: grid; grid-template-columns: repeat(2,1fr); gap: .75rem; }
+    .tip-card {
+      background: var(--white); border: 1px solid var(--border);
+      border-radius: var(--r); padding: 1.1rem;
+    }
+    .tip-card h4 { font-size: .875rem; font-weight: 600; color: var(--accent); margin-bottom: .35rem; }
+    .tip-card p  { font-size: .82rem; color: var(--muted); line-height: 1.55; }
+    .tip-example {
+      font-family: monospace; font-size: .76rem;
+      background: var(--off); padding: .4rem .6rem;
+      border-radius: 4px; color: var(--muted); margin-top: .5rem;
+    }
+    .types-list { display: flex; flex-direction: column; gap: .6rem; }
+    .type-card {
+      background: var(--white); border: 1px solid var(--border);
+      border-radius: var(--r); padding: 1rem 1.1rem;
+    }
+    .type-card h4 { font-size: .875rem; font-weight: 600; margin-bottom: .25rem; }
+    .type-card p  { font-size: .82rem; color: var(--muted); }
+    .action-cards { display: grid; grid-template-columns: repeat(3,1fr); gap: .75rem; }
+    .action-card {
+      background: var(--white); border: 1px solid var(--border);
+      border-radius: var(--r); padding: 1rem;
+    }
+    .action-card h4 { font-size: .82rem; font-weight: 600; color: var(--warn); margin-bottom: .6rem; }
+    .action-card ul { list-style: none; }
+    .action-card li { font-size: .78rem; color: var(--muted); padding: .25rem 0 .25rem .9rem; position: relative; line-height: 1.5; }
+    .action-card li::before { content: '•'; position: absolute; left: 0; color: var(--accent); }
+
+    /* ── HEADER ANALYZER ── */
+    .auth-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: .75rem; margin-bottom: 1rem; }
+    .auth-cell {
+      padding: .875rem; background: var(--off);
+      border: 1px solid var(--border); border-radius: var(--r); text-align: center;
+    }
+    .auth-cell-label { font-size: .7rem; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; margin-bottom: .35rem; }
+    .auth-cell-val { font-size: .95rem; font-weight: 700; }
+    .auth-pass { color: var(--safe); }
+    .auth-fail { color: var(--danger); }
+    .auth-warn { color: var(--warn); }
+    .auth-none { color: var(--muted); }
+
+    /* ── MODAL ── */
+    .modal-backdrop {
+      position: fixed; inset: 0; background: rgba(0,0,0,.45);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 200; display: none;
+    }
+    .modal-backdrop.show { display: flex; }
+    .modal {
+      background: var(--white); border: 1px solid var(--border);
+      border-radius: var(--r); width: 90%; max-width: 480px;
+      max-height: 80vh; overflow-y: auto; box-shadow: var(--shadow-md);
+    }
+    .modal-head {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 1.1rem 1.5rem; border-bottom: 1px solid var(--border);
+    }
+    .modal-head h3 { font-size: .95rem; font-weight: 600; }
+    .modal-close { background: none; border: none; font-size: 1.2rem; cursor: pointer; color: var(--muted); }
+    .modal-close:hover { color: var(--text); }
+    .modal-body { padding: 1.25rem 1.5rem; }
+
+    .share-btns { display: flex; gap: .5rem; flex-wrap: wrap; margin-bottom: 1rem; }
+    .share-btns .btn { flex: 1; }
+    .share-textarea {
+      width: 100%; padding: .75rem; background: var(--off);
+      border: 1px solid var(--border); border-radius: var(--r);
+      font-family: monospace; font-size: .8rem; resize: none; color: var(--text);
+    }
+
+    .report-links { display: flex; flex-direction: column; gap: .5rem; }
+    .report-link {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: .875rem 1rem; background: var(--off);
+      border: 1px solid var(--border); border-radius: var(--r);
+      font-size: .875rem; transition: background .2s;
+    }
+    .report-link:hover { background: #efefed; }
+    .report-link-arrow { color: var(--accent); }
+
+    /* ── EXPAND RESULT ── */
+    .expand-result {
+      margin-top: .875rem; padding: 1rem;
+      background: var(--off); border: 1px solid var(--border);
+      border-radius: var(--r); font-family: monospace; font-size: .82rem;
+      line-height: 1.6; display: none;
+    }
+    .expand-result.show { display: block; }
+
+    /* ── SCREENSHOT ── */
+    .screenshot-section { display: none; margin-bottom: 1.25rem; }
+    .screenshot-section.show { display: block; }
+    .screenshot-preview { text-align: center; }
+    .screenshot-preview img { max-width: 100%; border-radius: var(--r); border: 1px solid var(--border); }
+
+    /* ── LOADING ── */
+    .loading-overlay {
+      position: fixed; inset: 0;
+      background: rgba(247,247,245,.85); backdrop-filter: blur(4px);
+      display: none; flex-direction: column;
+      align-items: center; justify-content: center; gap: 1rem;
+      z-index: 300;
+    }
+    .loading-overlay.show { display: flex; }
+    .spinner {
+      width: 36px; height: 36px;
+      border: 3px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loading-text { font-size: .9rem; color: var(--muted); }
+
+    /* ── EMPTY ── */
+    .empty { text-align: center; padding: 2.5rem; color: var(--muted); font-size: .9rem; }
+
+    /* ── FEEDBACK ── */
+    .feedback-row {
+      display: flex; align-items: center; gap: .75rem;
+      padding-top: 1rem; border-top: 1px solid var(--border);
+      margin-top: 1rem;
+    }
+    .feedback-row p { font-size: .83rem; color: var(--muted); flex: 1; }
+
+    /* ── RESPONSIVE ── */
+    /* ── CHART ── */
+    .chart-wrap {
+      position: relative; height: 220px;
+      margin-bottom: 1.25rem;
+    }
+
+    /* ── ATTACHMENT ── */
+    .attach-drop {
+      border: 2px dashed var(--border); border-radius: var(--r);
+      padding: 2.5rem 2rem; text-align: center; cursor: pointer;
+      transition: border-color .2s, background .2s; margin-bottom: 1rem;
+    }
+    .attach-drop:hover, .attach-drop.over { border-color: var(--accent); background: #eff6ff; }
+    .attach-drop-icon { font-size: 1.75rem; margin-bottom: .5rem; }
+    .attach-drop p { font-size: .875rem; color: var(--muted); }
+    .attach-drop small { font-size: .75rem; color: #bbb; }
+    .attach-file-info {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 1rem; padding: .75rem 1rem;
+      background: var(--off); border: 1px solid var(--border);
+      border-radius: var(--r); margin-bottom: 1rem; font-size: .875rem;
+    }
+    .attach-filename { font-weight: 500; flex: 1; word-break: break-all; }
+    .attach-size { color: var(--muted); font-size: .8rem; white-space: nowrap; }
+
+    /* ── WEBHOOK ── */
+    .webhook-status {
+      display: flex; align-items: center; gap: .5rem;
+      font-size: .83rem; padding: .6rem .875rem;
+      border-radius: var(--r); margin-top: .75rem;
+    }
+    .webhook-status.success { background: #dcfce7; color: var(--safe); }
+    .webhook-status.error   { background: #fee2e2; color: var(--danger); }
+    .webhook-note {
+      font-size: .78rem; color: var(--muted);
+      margin-top: .6rem; line-height: 1.55;
+    }
+
+    @media(max-width:720px) {
+      .stats-strip, .stats-grid { grid-template-columns: repeat(2,1fr); }
+      .info-grid, .tips-grid, .auth-grid, .action-cards { grid-template-columns: 1fr; }
+      .app { padding: 1rem 1rem 3rem; }
+      nav { padding: 0 1rem; }
+      .tab-text { display: none; }
+      .tab { flex: 0 0 auto; padding: .55rem 1rem; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-brand">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+    </svg>
+    Phishing Intelligence Platform
+  </div>
+  <div class="nav-right">
+    <a href="/" class="nav-back">← Home</a>
+    <span class="nav-version">v5.0</span>
+  </div>
+</nav>
+
+<div class="app">
+
+  <!-- STATS STRIP -->
+  <div class="stats-strip">
+    <div class="stat-cell">
+      <span class="stat-val c-accent" id="totalScans">0</span>
+      <span class="stat-lbl">Total Scans</span>
+    </div>
+    <div class="stat-cell">
+      <span class="stat-val" id="emailScans">0</span>
+      <span class="stat-lbl">Email Scans</span>
+    </div>
+    <div class="stat-cell">
+      <span class="stat-val" id="urlScans">0</span>
+      <span class="stat-lbl">URL Scans</span>
+    </div>
+    <div class="stat-cell">
+      <span class="stat-val c-danger" id="highRiskCount">0</span>
+      <span class="stat-lbl">High Risk Detected</span>
+    </div>
+  </div>
+
+  <!-- TABS -->
+  <div class="tabs-bar">
+    <button class="tab active" data-tab="email">
+      <span class="tab-icon">📧</span><span class="tab-text">Email</span>
+    </button>
+    <button class="tab" data-tab="url">
+      <span class="tab-icon">🔗</span><span class="tab-text">URL</span>
+    </button>
+    <button class="tab" data-tab="qr">
+      <span class="tab-icon">📱</span><span class="tab-text">QR Scanner</span>
+    </button>
+    <button class="tab" data-tab="headers">
+      <span class="tab-icon">📋</span><span class="tab-text">Headers</span>
+    </button>
+    <button class="tab" data-tab="history">
+      <span class="tab-icon">📊</span><span class="tab-text">History</span>
+    </button>
+    <button class="tab" data-tab="attachment">
+      <span class="tab-icon">📎</span><span class="tab-text">Attachment</span>
+    </button>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════
+       EMAIL TAB
+  ═══════════════════════════════════════════════════════ -->
+  <div class="tab-content active" id="email-tab">
+    <div class="card">
+      <div class="card-head">
+        <span class="card-head-icon">📧</span>
+        <div>
+          <h2>Email Threat Analysis</h2>
+          <p>Paste suspicious email details to analyze for phishing indicators</p>
+        </div>
+      </div>
+      <div class="card-body">
+        <form id="emailForm">
+          <div class="form-group">
+            <label>Sender Email Address</label>
+            <input type="text" id="sender" placeholder="e.g. security@paypa1-verify.com" required>
+          </div>
+          <div class="form-group">
+            <label>Email Subject</label>
+            <input type="text" id="subject" placeholder="e.g. URGENT: Your account has been suspended!" required>
+          </div>
+          <div class="form-group">
+            <label>Email Body</label>
+            <textarea id="body" rows="5" placeholder="Paste the email content here..."></textarea>
+          </div>
+          <button type="submit" class="btn btn-primary btn-full">Analyze Email</button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Email Result -->
+    <div class="result-card" id="emailResult">
+      <div class="result-header" id="emailResultHeader">
+        <div class="result-badge">
+          <span class="result-icon" id="emailIcon">🔍</span>
+          <span class="result-level" id="emailLevel">—</span>
+        </div>
+        <div class="result-score-wrap">
+          <div class="result-score-label">Threat Score</div>
+          <div>
+            <span class="result-score" id="emailScore">—</span>
+            <span class="result-score-max">/100</span>
+          </div>
+        </div>
+      </div>
+      <div class="result-body">
+        <div class="advice-box" id="emailAdvice"></div>
+
+        <div class="result-actions">
+          <button class="btn btn-secondary btn-sm" onclick="generateEmailReport()">📄 PDF Report</button>
+          <button class="btn btn-secondary btn-sm" onclick="shareAnalysis('email')">📤 Share</button>
+        </div>
+
+        <div class="res-section">
+          <div class="res-section-title">Threat Indicators</div>
+          <div class="findings" id="emailFindings"></div>
+        </div>
+
+        <div class="res-section" id="emailUrlsSection" style="display:none">
+          <div class="res-section-title">URLs Found in Email</div>
+          <div class="url-list" id="emailUrls"></div>
+        </div>
+
+        <div class="res-section">
+          <div class="res-section-title">ML Analysis</div>
+          <div class="ml-box">
+            <span class="ml-box-label">Phishing Probability (trained model)</span>
+            <span class="ml-box-val" id="emailMlProb">—</span>
+          </div>
+        </div>
+
+        <div class="feedback-row">
+          <p>Was this analysis accurate?</p>
+          <button class="btn btn-secondary btn-sm" onclick="submitFeedback(false)">✓ Yes</button>
+          <button class="btn btn-secondary btn-sm" onclick="submitFeedback(true)">✗ No</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════
+       URL TAB
+  ═══════════════════════════════════════════════════════ -->
+  <div class="tab-content" id="url-tab">
+    <div class="card">
+      <div class="card-head">
+        <span class="card-head-icon">🔗</span>
+        <div>
+          <h2>URL Threat Intelligence</h2>
+          <p>Deep analysis of suspicious URLs — WHOIS, SSL, DNS, redirects, content</p>
+        </div>
+      </div>
+      <div class="card-body">
+        <form id="urlForm">
+          <div class="form-group">
+            <label>Suspicious URL</label>
+            <input type="text" id="urlInput" placeholder="e.g. https://paypa1-secure-login.com/verify" required>
+          </div>
+          <div class="btn-row">
+            <button type="submit" class="btn btn-primary" style="flex:1">Full Analysis</button>
+            <button type="button" class="btn btn-secondary" id="quickCheckBtn">⚡ Quick Check</button>
+          </div>
+        </form>
+
+        <div class="subsection">
+          <h3>Bulk URL Scanner</h3>
+          <textarea id="bulkUrls" rows="4" placeholder="Enter multiple URLs, one per line (max 10)..."></textarea>
+          <div style="margin-top:.6rem">
+            <button class="btn btn-secondary btn-full" onclick="bulkScanUrls()">Scan All URLs</button>
+          </div>
+        </div>
+
+        <div class="subsection">
+          <h3>URL Expander</h3>
+          <div style="display:flex;gap:.5rem">
+            <input type="text" id="shortUrl" placeholder="Paste a shortened URL (bit.ly, t.co...)">
+            <button class="btn btn-secondary" onclick="expandUrl()">Expand</button>
+          </div>
+          <div class="expand-result" id="expandResult"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="quick-result" id="quickResult">
+      <div class="quick-verdict" id="quickVerdict"></div>
+      <div class="quick-details" id="quickDetails"></div>
+    </div>
+
+    <div class="bulk-results" id="bulkResults"></div>
+
+    <!-- URL Result -->
+    <div class="result-card" id="urlResult">
+      <div class="result-header" id="urlResultHeader">
+        <div class="result-badge">
+          <span class="result-icon" id="urlIcon">🔍</span>
+          <span class="result-level" id="urlLevel">—</span>
+        </div>
+        <div class="result-score-wrap">
+          <div class="result-score-label">Threat Score</div>
+          <div>
+            <span class="result-score" id="urlScore">—</span>
+            <span class="result-score-max">/100</span>
+          </div>
+        </div>
+      </div>
+      <div class="result-body">
+        <div class="advice-box" id="urlSummary"></div>
+
+        <div class="result-actions">
+          <button class="btn btn-secondary btn-sm" onclick="generateUrlReport()">📄 PDF Report</button>
+          <button class="btn btn-secondary btn-sm" onclick="shareAnalysis('url')">📤 Share</button>
+          <button class="btn btn-secondary btn-sm" onclick="captureScreenshot()">📸 Screenshot</button>
+          <button class="btn btn-danger btn-sm" onclick="reportPhishing()">🚨 Report</button>
+        </div>
+
+        <div class="screenshot-section" id="screenshotSection">
+          <div class="res-section-title">Page Screenshot</div>
+          <div class="screenshot-preview" id="screenshotPreview"></div>
+        </div>
+
+        <div class="res-section">
+          <div class="res-section-title">Risk Factors</div>
+          <div class="findings" id="urlFindings"></div>
+        </div>
+
+        <div class="collapsible">
+          <button class="collapsible-toggle" onclick="toggleCollapsible(this)">
+            🌐 Domain Intelligence <span class="chevron">▼</span>
+          </button>
+          <div class="collapsible-body">
+            <div class="info-grid" id="domainInfo"></div>
+          </div>
+        </div>
+
+        <div class="collapsible">
+          <button class="collapsible-toggle" onclick="toggleCollapsible(this)">
+            🔒 SSL Certificate <span class="chevron">▼</span>
+          </button>
+          <div class="collapsible-body">
+            <div class="info-grid" id="sslInfo"></div>
+          </div>
+        </div>
+
+        <div class="collapsible">
+          <button class="collapsible-toggle" onclick="toggleCollapsible(this)">
+            ↪️ Redirect Chain <span class="chevron">▼</span>
+          </button>
+          <div class="collapsible-body">
+            <div class="info-grid" id="redirectInfo"></div>
+          </div>
+        </div>
+
+        <div class="collapsible">
+          <button class="collapsible-toggle" onclick="toggleCollapsible(this)">
+            📡 DNS Records <span class="chevron">▼</span>
+          </button>
+          <div class="collapsible-body">
+            <div class="info-grid" id="dnsInfo"></div>
+          </div>
+        </div>
+
+        <div class="collapsible">
+          <button class="collapsible-toggle" onclick="toggleCollapsible(this)">
+            📄 Content Analysis <span class="chevron">▼</span>
+          </button>
+          <div class="collapsible-body">
+            <div class="info-grid" id="contentInfo"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════
+       QR TAB
+  ═══════════════════════════════════════════════════════ -->
+  <div class="tab-content" id="qr-tab">
+    <div class="card">
+      <div class="card-head">
+        <span class="card-head-icon">📱</span>
+        <div>
+          <h2>QR Code Scanner</h2>
+          <p>Upload a QR code image to extract and analyze the embedded URL</p>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="qr-drop" id="qrDrop">
+          <div class="qr-drop-icon">📷</div>
+          <p>Drag and drop a QR code image here, or click to select</p>
+          <input type="file" id="qrInput" accept="image/*" style="display:none">
+        </div>
+        <div class="qr-preview" id="qrPreview" style="display:none">
+          <img id="qrImg" src="" alt="QR Preview">
+          <div style="margin-top:.6rem">
+            <button class="btn btn-secondary btn-sm" onclick="clearQr()">✕ Clear</button>
+          </div>
+        </div>
+        <button class="btn btn-primary btn-full" id="scanBtn" disabled onclick="scanQr()">🔍 Scan QR Code</button>
+      </div>
+    </div>
+    <div class="card" id="qrResult" style="display:none">
+      <div class="card-head"><span class="card-head-icon">📱</span><div><h2>QR Code Contents</h2></div></div>
+      <div class="card-body" id="qrResultBody"></div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════
+       HEADERS TAB
+  ═══════════════════════════════════════════════════════ -->
+  <div class="tab-content" id="headers-tab">
+    <div class="card">
+      <div class="card-head">
+        <span class="card-head-icon">📋</span>
+        <div>
+          <h2>Email Header Analyzer</h2>
+          <p>Paste raw email headers to verify SPF, DKIM, and DMARC authentication</p>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="form-group">
+          <label>Raw Email Headers</label>
+          <textarea id="headerInput" rows="10" placeholder="Paste the complete email headers here...
+
+To get headers:
+• Gmail: Open email → ⋮ menu → Show original
+• Outlook: Open email → ⋯ → View message source
+• Apple Mail: View → Message → Raw Source"></textarea>
+        </div>
+        <button class="btn btn-primary btn-full" onclick="analyzeHeaders()">Analyze Headers</button>
+      </div>
+    </div>
+    <div class="card" id="headerResult" style="display:none">
+      <div class="card-head"><span class="card-head-icon">📋</span><div><h2>Header Analysis</h2></div></div>
+      <div class="card-body" id="headerResultBody"></div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════
+       HISTORY TAB
+  ═══════════════════════════════════════════════════════ -->
+  <div class="tab-content" id="history-tab">
+
+    <div class="stats-grid">
+      <div class="stat-box">
+        <div class="stat-box-val accent" id="hTotalScans">0</div>
+        <div class="stat-box-lbl">Total Scans</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-box-val" id="hEmailScans">0</div>
+        <div class="stat-box-lbl">Email Scans</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-box-val" id="hUrlScans">0</div>
+        <div class="stat-box-lbl">URL Scans</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-box-val danger" id="hHighRisk">0</div>
+        <div class="stat-box-lbl">High Risk</div>
+      </div>
+    </div>
+
+    <!-- THREAT SCORE CHART -->
+    <div class="card">
+      <div class="card-head">
+        <span class="card-head-icon">📈</span>
+        <div><h2>Threat Score History</h2><p>Risk scores from your recent scans</p></div>
+      </div>
+      <div class="card-body">
+        <div class="chart-wrap">
+          <canvas id="threatChart"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><span class="card-head-icon">📊</span><div><h2>Scan History</h2></div></div>
+      <div class="card-body">
+        <div class="search-row">
+          <input type="text" id="historySearch" placeholder="Search history...">
+          <button class="btn btn-secondary" onclick="searchHistory()">Search</button>
+        </div>
+        <div class="filter-row">
+          <button class="filter-btn active" onclick="filterHistory('all',this)">All</button>
+          <button class="filter-btn" onclick="filterHistory('email',this)">Email</button>
+          <button class="filter-btn" onclick="filterHistory('url',this)">URL</button>
+        </div>
+        <div class="history-list" id="historyList">
+          <div class="empty">No scans yet</div>
+        </div>
+        <button class="btn btn-danger btn-full btn-sm" onclick="clearHistory()">🗑 Clear History</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><span class="card-head-icon">🌐</span><div><h2>Live Threat Feed</h2><p>Recent phishing URLs from OpenPhish and URLhaus</p></div></div>
+      <div class="card-body">
+        <button class="btn btn-secondary btn-full" onclick="loadThreatFeed()" style="margin-bottom:1rem">🔄 Load Latest Threats</button>
+        <div class="threat-feed" id="threatFeed"></div>
+      </div>
+    </div>
+
+    <!-- LEARN — collapsible at bottom of history tab -->
+    <div class="card">
+      <div class="card-head"><span class="card-head-icon">🔔</span><div><h2>Slack Webhook Alerts</h2><p>Get notified in Slack when critical threats are detected</p></div></div>
+      <div class="card-body">
+        <div class="form-group">
+          <label>Slack Webhook URL</label>
+          <input type="text" id="webhookUrl" placeholder="https://hooks.slack.com/services/...">
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-secondary" onclick="testWebhook()">⚡ Test Connection</button>
+          <button class="btn btn-primary" onclick="saveWebhook()">💾 Save</button>
+        </div>
+        <div id="webhookStatus"></div>
+        <p class="webhook-note">
+          To get a webhook URL: In Slack, go to <strong>Apps → Incoming Webhooks → Add New Webhook</strong>. 
+          Once saved, alerts will be sent automatically when any scan returns CRITICAL or HIGH RISK.
+        </p>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-head"><span class="card-head-icon">📚</span><div><h2>Learning Resources</h2><p>How to identify and protect yourself from phishing attacks</p></div></div>
+      <div class="card-body">
+        <div class="learn-section">
+          <h3>How to Spot Phishing</h3>
+          <div class="tips-grid" id="phishingTips"></div>
+        </div>
+        <div class="learn-section">
+          <h3>Types of Phishing Attacks</h3>
+          <div class="types-list" id="phishingTypes"></div>
+        </div>
+        <div class="learn-section">
+          <h3>What To Do If...</h3>
+          <div class="action-cards" id="whatToDo"></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+  <!-- ═══════════════════════════════════════════════════════
+       ATTACHMENT TAB
+  ═══════════════════════════════════════════════════════ -->
+  <div class="tab-content" id="attachment-tab">
+    <div class="card">
+      <div class="card-head">
+        <span class="card-head-icon">📎</span>
+        <div>
+          <h2>Email Attachment Analysis</h2>
+          <p>Upload a suspicious attachment to scan for macros, scripts, and phishing indicators</p>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="attach-drop" id="attachDrop">
+          <div class="attach-drop-icon">📄</div>
+          <p>Drag and drop an attachment here, or click to select</p>
+          <small>Supports PDF, Word, Excel, PowerPoint, ZIP · Max 10MB</small>
+          <input type="file" id="attachInput" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip,.rar" style="display:none">
+        </div>
+        <div class="attach-file-info" id="attachFileInfo" style="display:none">
+          <span class="attach-filename" id="attachFilename"></span>
+          <span class="attach-size" id="attachFileSize"></span>
+          <button class="btn btn-secondary btn-sm" onclick="clearAttach()">✕</button>
+        </div>
+        <button class="btn btn-primary btn-full" id="attachScanBtn" disabled onclick="scanAttachment()">
+          🔍 Analyze Attachment
+        </button>
+      </div>
+    </div>
+
+    <!-- Attachment Result -->
+    <div class="result-card" id="attachResult">
+      <div class="result-header" id="attachResultHeader">
+        <div class="result-badge">
+          <span class="result-icon" id="attachIcon">📄</span>
+          <span class="result-level" id="attachLevel">—</span>
+        </div>
+        <div class="result-score-wrap">
+          <div class="result-score-label">Risk Score</div>
+          <div>
+            <span class="result-score" id="attachScore">—</span>
+            <span class="result-score-max">/100</span>
+          </div>
+        </div>
+      </div>
+      <div class="result-body">
+        <div class="advice-box" id="attachSummary"></div>
+
+        <div class="res-section">
+          <div class="res-section-title">File Details</div>
+          <div class="info-grid" id="attachFileDetails"></div>
+        </div>
+
+        <div class="res-section">
+          <div class="res-section-title">Risk Factors</div>
+          <div class="findings" id="attachFindings"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><span class="card-head-icon">ℹ️</span><div><h2>What we check</h2></div></div>
+      <div class="card-body">
+        <div class="info-grid">
+          <div class="info-cell"><div class="info-cell-label">PDF Files</div><div class="info-cell-val" style="font-size:.82rem;font-weight:400">JavaScript, auto-actions, embedded files, launch commands</div></div>
+          <div class="info-cell"><div class="info-cell-label">Office Documents</div><div class="info-cell-val" style="font-size:.82rem;font-weight:400">VBA macros, auto-open scripts, external references, shell commands</div></div>
+          <div class="info-cell"><div class="info-cell-label">ZIP Archives</div><div class="info-cell-val" style="font-size:.82rem;font-weight:400">Dangerous files inside archive, double extension tricks</div></div>
+          <div class="info-cell"><div class="info-cell-label">All Files</div><div class="info-cell-val" style="font-size:.82rem;font-weight:400">Filename patterns, file size anomalies, dangerous extensions</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /app -->
+
+<!-- LOADING -->
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="spinner"></div>
+  <div class="loading-text" id="loadingText">Analyzing...</div>
+</div>
+
+<!-- SHARE MODAL -->
+<div class="modal-backdrop" id="shareModal">
+  <div class="modal">
+    <div class="modal-head">
+      <h3>Share Analysis</h3>
+      <button class="modal-close" onclick="closeModal('shareModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="share-btns">
+        <button class="btn btn-secondary btn-sm" onclick="shareToTwitter()">🐦 Twitter/X</button>
+        <button class="btn btn-secondary btn-sm" onclick="shareViaEmail()">📧 Email</button>
+        <button class="btn btn-secondary btn-sm" onclick="copyShareText()">📋 Copy</button>
+      </div>
+      <textarea class="share-textarea" id="shareTextArea" rows="6" readonly></textarea>
+    </div>
+  </div>
+</div>
+
+<!-- REPORT MODAL -->
+<div class="modal-backdrop" id="reportModal">
+  <div class="modal">
+    <div class="modal-head">
+      <h3>Report Phishing URL</h3>
+      <button class="modal-close" onclick="closeModal('reportModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:.875rem;color:var(--muted);margin-bottom:1rem">Report this URL to security services:</p>
+      <div class="report-links" id="reportLinks"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+window.lastEmailAnalysis = null;
+window.lastUrlAnalysis   = null;
+let lastAnalyzedEmail    = null;
+let qrImageData          = null;
+
+// ── TABS ──────────────────────────────────────────────────────
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+    tab.classList.add('active');
+    const id = tab.dataset.tab + '-tab';
+    document.getElementById(id).classList.add('active');
+    if (tab.dataset.tab === 'history') { loadHistory(); loadStats(); }
+    if (tab.dataset.tab === 'history') loadLearningContent();
+  });
+});
+
+// ── LOADING ───────────────────────────────────────────────────
+function showLoading(msg='Analyzing...') {
+  document.getElementById('loadingText').textContent = msg;
+  document.getElementById('loadingOverlay').classList.add('show');
+}
+function hideLoading() { document.getElementById('loadingOverlay').classList.remove('show'); }
+
+// ── RISK HELPERS ──────────────────────────────────────────────
+function riskClass(score) {
+  if (score >= 80) return 'critical';
+  if (score >= 60) return 'high';
+  if (score >= 40) return 'medium';
+  if (score >= 20) return 'low';
+  return 'safe';
+}
+function riskColor(score) {
+  if (score >= 80) return 'var(--crit)';
+  if (score >= 60) return 'var(--danger)';
+  if (score >= 40) return 'var(--warn)';
+  if (score >= 20) return '#0891b2';
+  return 'var(--safe)';
+}
+function pillClass(level) {
+  const l = (level||'').toLowerCase();
+  if (l.includes('critical')) return 'pill-crit';
+  if (l.includes('high'))     return 'pill-danger';
+  if (l.includes('medium'))   return 'pill-warn';
+  if (l.includes('safe') || l.includes('low')) return 'pill-safe';
+  return 'pill-neutral';
+}
+
+// ── EMAIL ANALYSIS ────────────────────────────────────────────
+document.getElementById('emailForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  const sender  = document.getElementById('sender').value.trim();
+  const subject = document.getElementById('subject').value.trim();
+  const body    = document.getElementById('body').value.trim();
+  if (!sender || !subject) return alert('Please provide sender and subject');
+  showLoading('Analyzing email...');
+  try {
+    const res  = await fetch('/analyze', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({sender,subject,body}) });
+    const data = await res.json();
+    if (data.success) { window.lastEmailAnalysis = data; lastAnalyzedEmail = {subject,body}; displayEmailResult(data); }
+    else alert('Error: ' + data.error);
+  } catch(e) { alert('Failed to connect'); }
+  finally { hideLoading(); }
+});
+
+function displayEmailResult(d) {
+  const card = document.getElementById('emailResult');
+  card.classList.add('show');
+  const score = d.danger_score;
+  const rc    = riskClass(score);
+  document.getElementById('emailResultHeader').className = `result-header ${rc}`;
+  document.getElementById('emailIcon').textContent  = d.risk_icon;
+  document.getElementById('emailLevel').textContent = d.risk_level;
+  document.getElementById('emailLevel').style.color = riskColor(score);
+  document.getElementById('emailScore').textContent = score;
+  document.getElementById('emailScore').style.color = riskColor(score);
+  document.getElementById('emailAdvice').textContent = d.advice;
+
+  const fl = document.getElementById('emailFindings'); fl.innerHTML = '';
+  if (d.reasons?.length) {
+    d.reasons.forEach(r => {
+      const el = document.createElement('div');
+      el.className = 'finding';
+      el.innerHTML = `<div class="finding-dot ${score>=60?'red':''}"></div><span>${esc(r)}</span>`;
+      fl.appendChild(el);
+    });
+  } else {
+    fl.innerHTML = '<div class="finding"><span style="color:var(--safe)">✓ No suspicious indicators detected</span></div>';
+  }
+
+  const us = document.getElementById('emailUrlsSection');
+  const ul = document.getElementById('emailUrls');
+  if (d.extracted_urls?.length) {
+    us.style.display = 'block'; ul.innerHTML = '';
+    d.extracted_urls.forEach(u => {
+      ul.innerHTML += `<div class="url-item"><span class="url-item-text">${esc(truncate(u,50))}</span><button class="btn btn-secondary btn-sm" onclick="analyzeUrlFromEmail('${esc(u)}')">Analyze</button></div>`;
+    });
+  } else { us.style.display = 'none'; }
+
+  document.getElementById('emailMlProb').textContent = `${d.ml_probability}% (${d.ml_confidence})`;
+  card.scrollIntoView({ behavior:'smooth', block:'nearest' });
+  loadStats();
+  maybeSendWebhookAlert('email', `${sender} — ${subject}`, d.risk_level, score, d.reasons||[]);
+}
+
+// ── URL ANALYSIS ──────────────────────────────────────────────
+document.getElementById('urlForm').addEventListener('submit', async e => { e.preventDefault(); await analyzeUrl(false); });
+document.getElementById('quickCheckBtn').addEventListener('click', () => analyzeUrl(true));
+
+async function analyzeUrl(quick=false) {
+  const url = document.getElementById('urlInput').value.trim();
+  if (!url) return alert('Please enter a URL');
+  showLoading(quick ? 'Quick checking...' : 'Running deep analysis...');
+  document.getElementById('quickResult').classList.remove('show');
+  document.getElementById('urlResult').classList.remove('show');
+  try {
+    const res  = await fetch(quick ? '/quick-url-check' : '/analyze-url', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({url}) });
+    const data = await res.json();
+    if (data.success) { if (quick) displayQuickResult(data); else { window.lastUrlAnalysis = data; displayUrlResult(data); } }
+    else alert('Error: ' + data.error);
+  } catch(e) { alert('Failed to connect'); }
+  finally { hideLoading(); }
+}
+
+function displayQuickResult(d) {
+  const el = document.getElementById('quickResult');
+  el.classList.add('show');
+  document.getElementById('quickVerdict').textContent  = d.verdict;
+  document.getElementById('quickVerdict').style.color  = d.color;
+  document.getElementById('quickDetails').innerHTML    =
+    (d.findings.length ? d.findings.map(f=>`⚠️ ${f}`).join('<br>') : '✓ No threats detected') +
+    `<br><small style="color:var(--muted)">${d.note}</small>`;
+}
+
+function displayUrlResult(d) {
+  const card = document.getElementById('urlResult');
+  card.classList.add('show');
+  const score = d.danger_score;
+  const rc    = riskClass(score);
+  document.getElementById('urlResultHeader').className = `result-header ${rc}`;
+  document.getElementById('urlIcon').textContent  = d.risk_icon;
+  document.getElementById('urlLevel').textContent = d.risk_level;
+  document.getElementById('urlLevel').style.color = riskColor(score);
+  document.getElementById('urlScore').textContent = score;
+  document.getElementById('urlScore').style.color = riskColor(score);
+  document.getElementById('urlSummary').textContent = d.summary;
+
+  renderInfoGrid('domainInfo',   d.domain_info,   ['domain','registrar','creation_date','domain_age_days','expiration_date','registrant_country']);
+  renderInfoGrid('sslInfo',      d.ssl_info,      ['issuer','issuer_org','valid_from','valid_until','days_until_expiry']);
+  renderInfoGrid('redirectInfo', d.redirect_info, ['redirect_count','uses_shortener','crosses_domains','final_url']);
+  renderInfoGrid('dnsInfo',      d.dns_info,      ['a_records','mx_records','ns_records']);
+  renderInfoGrid('contentInfo',  d.content_info,  ['page_title','has_login_form','has_password_field','requests_sensitive_info','external_form_action']);
+
+  const fl = document.getElementById('urlFindings'); fl.innerHTML = '';
+  if (d.reasons?.length) {
+    d.reasons.forEach(r => {
+      const el = document.createElement('div');
+      el.className = 'finding';
+      el.innerHTML = `<div class="finding-dot ${score>=60?'red':''}"></div><span>${esc(r)}</span>`;
+      fl.appendChild(el);
+    });
+  } else {
+    fl.innerHTML = '<div class="finding"><span style="color:var(--safe)">✓ No risk factors detected</span></div>';
+  }
+
+  card.scrollIntoView({ behavior:'smooth', block:'nearest' });
+  loadStats();
+  maybeSendWebhookAlert('url', d.url, d.risk_level, score, d.reasons||[]);
+}
+
+function renderInfoGrid(id, info, fields) {
+  const el = document.getElementById(id);
+  if (!info?.success && info?.has_ssl === undefined) { el.innerHTML = '<p style="color:var(--muted);font-size:.85rem">Unavailable</p>'; return; }
+  el.innerHTML = fields.map(f => {
+    let v = info[f];
+    if (Array.isArray(v)) v = v.join(', ') || 'None';
+    if (typeof v === 'boolean') v = v ? '<span style="color:var(--warn)">Yes</span>' : 'No';
+    return `<div class="info-cell"><div class="info-cell-label">${f.replace(/_/g,' ')}</div><div class="info-cell-val">${v ?? 'N/A'}</div></div>`;
+  }).join('');
+}
+
+function analyzeUrlFromEmail(url) {
+  document.querySelector('[data-tab="url"]').click();
+  document.getElementById('urlInput').value = url;
+  setTimeout(() => analyzeUrl(false), 200);
+}
+
+// ── BULK ──────────────────────────────────────────────────────
+async function bulkScanUrls() {
+  const urls = document.getElementById('bulkUrls').value.split('\n').filter(u=>u.trim());
+  if (!urls.length) return alert('Enter at least one URL');
+  if (urls.length > 10) return alert('Maximum 10 URLs');
+  showLoading(`Scanning ${urls.length} URLs...`);
+  try {
+    const res  = await fetch('/bulk-url-check', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({urls}) });
+    const data = await res.json();
+    if (data.success) {
+      const el = document.getElementById('bulkResults');
+      el.classList.add('show');
+      el.innerHTML = data.results.map(r =>
+        `<div class="bulk-item"><span class="bulk-url">${truncate(r.url,50)}</span><span class="pill ${pillClass(r.risk_level)}">${r.risk_level||'Error'}</span></div>`
+      ).join('');
+    }
+  } catch(e) { alert('Failed'); }
+  finally { hideLoading(); }
+}
+
+async function expandUrl() {
+  const url = document.getElementById('shortUrl').value.trim();
+  if (!url) return;
+  showLoading('Expanding...');
+  try {
+    const res  = await fetch('/expand-url', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({url}) });
+    const d    = await res.json();
+    const el   = document.getElementById('expandResult');
+    if (d.success) {
+      el.classList.add('show');
+      el.innerHTML = `<strong>Original:</strong> ${d.original_url}<br><strong>Final:</strong> ${d.final_url}<br><strong>Redirects:</strong> ${d.redirect_count}`;
+    }
+  } catch(e) {}
+  finally { hideLoading(); }
+}
+
+// ── QR ────────────────────────────────────────────────────────
+const qrDrop  = document.getElementById('qrDrop');
+const qrInput = document.getElementById('qrInput');
+qrDrop.addEventListener('click', () => qrInput.click());
+qrDrop.addEventListener('dragover', e => { e.preventDefault(); qrDrop.classList.add('over'); });
+qrDrop.addEventListener('dragleave', () => qrDrop.classList.remove('over'));
+qrDrop.addEventListener('drop', e => { e.preventDefault(); qrDrop.classList.remove('over'); if (e.dataTransfer.files[0]) handleQrFile(e.dataTransfer.files[0]); });
+qrInput.addEventListener('change', e => { if (e.target.files[0]) handleQrFile(e.target.files[0]); });
+
+function handleQrFile(file) {
+  if (!file.type.startsWith('image/')) return alert('Please upload an image');
+  const reader = new FileReader();
+  reader.onload = e => {
+    qrImageData = e.target.result;
+    document.getElementById('qrImg').src = qrImageData;
+    document.getElementById('qrPreview').style.display = 'block';
+    qrDrop.style.display = 'none';
+    document.getElementById('scanBtn').disabled = false;
+  };
+  reader.readAsDataURL(file);
+}
+function clearQr() {
+  qrImageData = null;
+  document.getElementById('qrPreview').style.display = 'none';
+  qrDrop.style.display = 'block';
+  document.getElementById('scanBtn').disabled = true;
+  document.getElementById('qrResult').style.display = 'none';
+}
+async function scanQr() {
+  if (!qrImageData) return;
+  showLoading('Scanning QR code...');
+  try {
+    const res  = await fetch('/scan-qr', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({image:qrImageData}) });
+    const d    = await res.json();
+    const card = document.getElementById('qrResult');
+    const body = document.getElementById('qrResultBody');
+    card.style.display = 'block';
+    body.innerHTML = d.success && d.results
+      ? d.results.map(r => `<div style="padding:1rem;background:var(--off);border-radius:var(--r);border:1px solid var(--border);margin-bottom:.75rem"><div style="font-family:monospace;word-break:break-all;margin-bottom:.5rem">${esc(r.data)}</div>${r.is_url?`<button class="btn btn-primary btn-sm" onclick="analyzeUrlFromEmail('${esc(r.data)}')">Analyze URL</button>`:''}</div>`).join('')
+      : `<p style="color:var(--danger)">❌ ${d.error || 'No QR code found'}</p>`;
+  } catch(e) { alert('Failed'); }
+  finally { hideLoading(); }
+}
+
+// ── HEADERS ───────────────────────────────────────────────────
+async function analyzeHeaders() {
+  const headers = document.getElementById('headerInput').value.trim();
+  if (!headers) return alert('Please paste email headers');
+  showLoading('Analyzing headers...');
+  try {
+    const res = await fetch('/analyze-headers', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({headers}) });
+    const d   = await res.json();
+    const card = document.getElementById('headerResult');
+    const body = document.getElementById('headerResultBody');
+    card.style.display = 'block';
+    if (d.success) {
+      const a = d.authentication;
+      const authColor = s => s==='pass'?'auth-pass':s==='fail'?'auth-fail':s==='not_found'?'auth-none':'auth-warn';
+      body.innerHTML = `
+        <div class="res-section">
+          <div class="res-section-title">Basic Info</div>
+          <div class="info-grid">
+            <div class="info-cell"><div class="info-cell-label">From</div><div class="info-cell-val">${esc(d.basic_info.from||'N/A')}</div></div>
+            <div class="info-cell"><div class="info-cell-label">Subject</div><div class="info-cell-val">${esc(d.basic_info.subject||'N/A')}</div></div>
+            <div class="info-cell"><div class="info-cell-label">Reply-To</div><div class="info-cell-val">${esc(d.basic_info.reply_to||'N/A')}</div></div>
+            <div class="info-cell"><div class="info-cell-label">Return-Path</div><div class="info-cell-val">${esc(d.basic_info.return_path||'N/A')}</div></div>
+          </div>
+        </div>
+        <div class="res-section">
+          <div class="res-section-title">Authentication</div>
+          <div class="auth-grid">
+            <div class="auth-cell"><div class="auth-cell-label">SPF</div><div class="auth-cell-val ${authColor(a.spf.status)}">${a.spf.status.toUpperCase()}</div></div>
+            <div class="auth-cell"><div class="auth-cell-label">DKIM</div><div class="auth-cell-val ${authColor(a.dkim.status)}">${a.dkim.status.toUpperCase()}</div></div>
+            <div class="auth-cell"><div class="auth-cell-label">DMARC</div><div class="auth-cell-val ${authColor(a.dmarc.status)}">${a.dmarc.status.toUpperCase()}</div></div>
+          </div>
+          <div class="ml-box" style="margin-top:.75rem">
+            <span class="ml-box-label">Overall Risk Score</span>
+            <span class="ml-box-val" style="color:${riskColor(d.risk_score)}">${d.risk_level.toUpperCase()} (${d.risk_score}/100)</span>
+          </div>
+        </div>
+        ${d.security_analysis?.length ? `
+        <div class="res-section">
+          <div class="res-section-title">Security Findings</div>
+          <div class="findings">${d.security_analysis.map(f=>`<div class="finding"><div class="finding-dot ${f.severity==='high'?'red':''}"></div><span><strong>${f.severity}:</strong> ${esc(f.finding)}</span></div>`).join('')}</div>
+        </div>` : ''}
+      `;
+    } else {
+      body.innerHTML = `<p style="color:var(--danger)">❌ ${d.error}</p>`;
+    }
+  } catch(e) { alert('Failed'); }
+  finally { hideLoading(); }
+}
+
+// ── HISTORY ───────────────────────────────────────────────────
+async function loadStats() {
+  try {
+    const res = await fetch('/history');
+    const d   = await res.json();
+    if (!d.success) return;
+    const s = d.stats;
+    ['totalScans','emailScans','urlScans','highRiskCount'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.textContent = id==='totalScans'?s.total_scans||0:id==='emailScans'?s.by_type?.email||0:id==='urlScans'?s.by_type?.url||0:s.high_risk_count||0;
+    });
+    ['hTotalScans','hEmailScans','hUrlScans','hHighRisk'].forEach((id,i) => {
+      const el = document.getElementById(id);
+      if (el) el.textContent = [s.total_scans||0, s.by_type?.email||0, s.by_type?.url||0, s.high_risk_count||0][i];
+    });
+  } catch(e) {}
+}
+
+async function loadHistory(type=null) {
+  try {
+    const res = await fetch(type ? `/history?type=${type}` : '/history');
+    const d   = await res.json();
+    if (d.success) {
+      renderHistory(d.scans);
+      loadStats();
+      buildChart(d.scans);
+    }
+  } catch(e) {}
+}
+
+function renderHistory(scans) {
+  const el = document.getElementById('historyList');
+  if (!scans?.length) { el.innerHTML = '<div class="empty">No scans yet</div>'; return; }
+  el.innerHTML = scans.map(s => `
+    <div class="history-item">
+      <div class="history-info">
+        <div class="history-type">${s.type}</div>
+        <div class="history-target">${truncate(s.target,55)}</div>
+        <div class="history-time">${new Date(s.timestamp).toLocaleString()}</div>
+      </div>
+      <span class="pill ${pillClass(s.risk_level)}">${s.risk_score}</span>
+    </div>`).join('');
+}
+
+function filterHistory(type, btn) {
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  loadHistory(type==='all' ? null : type);
+}
+
+async function searchHistory() {
+  const q = document.getElementById('historySearch').value.trim();
+  if (!q) { loadHistory(); return; }
+  const res = await fetch(`/history/search?q=${encodeURIComponent(q)}`);
+  const d   = await res.json();
+  if (d.success) renderHistory(d.results);
+}
+
+async function clearHistory() {
+  if (!confirm('Clear all history?')) return;
+  await fetch('/history/clear', { method:'POST' });
+  loadHistory();
+}
+
+// ── THREAT FEED ───────────────────────────────────────────────
+async function loadThreatFeed() {
+  showLoading('Loading threats...');
+  try {
+    const res = await fetch('/threat-feed');
+    const d   = await res.json();
+    const el  = document.getElementById('threatFeed');
+    el.innerHTML = d.success && d.feed.items.length
+      ? d.feed.items.slice(0,20).map(i => `<div class="threat-item"><div class="threat-url">${truncate(i.url,60)}</div><div class="threat-meta">${i.source} · ${i.threat_type||'phishing'}</div></div>`).join('')
+      : '<div class="empty">No threats loaded</div>';
+  } catch(e) { document.getElementById('threatFeed').innerHTML = '<div class="empty">Failed to load feed</div>'; }
+  finally { hideLoading(); }
+}
+
+// ── LEARNING ──────────────────────────────────────────────────
+async function loadLearningContent() {
+  try {
+    const [tips, types, actions] = await Promise.all([
+      fetch('/learning/tips').then(r=>r.json()),
+      fetch('/learning/types').then(r=>r.json()),
+      fetch('/learning/actions').then(r=>r.json()),
+    ]);
+    if (tips.success) document.getElementById('phishingTips').innerHTML = tips.tips.map(t=>`<div class="tip-card"><h4>${t.title}</h4><p>${t.description}</p><div class="tip-example">${t.example}</div></div>`).join('');
+    if (types.success) document.getElementById('phishingTypes').innerHTML = types.types.map(t=>`<div class="type-card"><h4>${t.type}</h4><p>${t.description}</p></div>`).join('');
+    if (actions.success) {
+      const a = actions.actions;
+      document.getElementById('whatToDo').innerHTML = `
+        <div class="action-card"><h4>📧 Received Suspicious Email</h4><ul>${a.if_received.map(x=>`<li>${x}</li>`).join('')}</ul></div>
+        <div class="action-card"><h4>🖱️ Clicked a Link</h4><ul>${a.if_clicked.map(x=>`<li>${x}</li>`).join('')}</ul></div>
+        <div class="action-card"><h4>🔐 Entered Information</h4><ul>${a.if_entered_info.map(x=>`<li>${x}</li>`).join('')}</ul></div>`;
+    }
+  } catch(e) {}
+}
+
+// ── PDF REPORTS ───────────────────────────────────────────────
+async function generateEmailReport() {
+  if (!window.lastEmailAnalysis) return alert('No analysis to export');
+  showLoading('Generating PDF...');
+  try {
+    const res = await fetch('/generate-report', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({type:'email',data:window.lastEmailAnalysis}) });
+    if (res.ok) { const blob = await res.blob(); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `email_report_${Date.now()}.pdf`; a.click(); }
+    else alert('PDF reports may not be available');
+  } catch(e) { alert('Failed'); }
+  finally { hideLoading(); }
+}
+
+async function generateUrlReport() {
+  if (!window.lastUrlAnalysis) return alert('No analysis to export');
+  showLoading('Generating PDF...');
+  try {
+    const res = await fetch('/generate-report', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({type:'url',data:window.lastUrlAnalysis}) });
+    if (res.ok) { const blob = await res.blob(); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `url_report_${Date.now()}.pdf`; a.click(); }
+    else alert('Failed');
+  } catch(e) { alert('Failed'); }
+  finally { hideLoading(); }
+}
+
+// ── SCREENSHOT ────────────────────────────────────────────────
+async function captureScreenshot() {
+  if (!window.lastUrlAnalysis) return alert('Analyze a URL first');
+  const section = document.getElementById('screenshotSection');
+  const preview = document.getElementById('screenshotPreview');
+  section.classList.add('show');
+  preview.innerHTML = '<div style="padding:2rem;text-align:center;color:var(--muted)">📸 Capturing...</div>';
+  try {
+    const res  = await fetch('/screenshot', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({url:window.lastUrlAnalysis.url}) });
+    const data = await res.json();
+    if (data.success && data.screenshot_url) {
+      preview.innerHTML = `<img src="${data.screenshot_url}" alt="Screenshot" onerror="this.parentElement.innerHTML='<p style=color:var(--muted)>Could not load screenshot</p>'">`;
+    } else {
+      preview.innerHTML = `<p style="color:var(--danger)">${data.error||'Screenshot unavailable'}</p>`;
+    }
+  } catch(e) { preview.innerHTML = '<p style="color:var(--danger)">Failed to capture</p>'; }
+}
+
+// ── SHARE ─────────────────────────────────────────────────────
+async function shareAnalysis(type) {
+  const data = type==='email' ? window.lastEmailAnalysis : window.lastUrlAnalysis;
+  if (!data) return alert('No analysis to share');
+  try {
+    const res = await fetch('/share', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({type,data}) });
+    const d   = await res.json();
+    document.getElementById('shareTextArea').value = d.share_text || JSON.stringify(data, null, 2);
+    document.getElementById('shareModal').classList.add('show');
+    window._shareData = d;
+  } catch(e) { alert('Failed'); }
+}
+function shareToTwitter() { if (window._shareData?.twitter_url) window.open(window._shareData.twitter_url,'_blank'); }
+function shareViaEmail()  { if (window._shareData?.email_url)   window.location.href = window._shareData.email_url; }
+function copyShareText()  { navigator.clipboard.writeText(document.getElementById('shareTextArea').value); }
+
+// ── REPORT PHISHING ───────────────────────────────────────────
+async function reportPhishing() {
+  if (!window.lastUrlAnalysis) return alert('Analyze a URL first');
+  try {
+    const res = await fetch('/report-phishing', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({url:window.lastUrlAnalysis.url}) });
+    const d   = await res.json();
+    if (d.success) {
+      const links = document.getElementById('reportLinks');
+      links.innerHTML = Object.entries(d.report_urls).map(([name, url]) =>
+        `<a href="${url}" target="_blank" class="report-link"><span>${name.replace(/_/g,' ')}</span><span class="report-link-arrow">→</span></a>`
+      ).join('');
+      document.getElementById('reportModal').classList.add('show');
+    }
+  } catch(e) { alert('Failed'); }
+}
+
+// ── FEEDBACK ──────────────────────────────────────────────────
+async function submitFeedback(isPhishing) {
+  if (!lastAnalyzedEmail) return alert('No email analyzed');
+  await fetch('/feedback', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({subject:lastAnalyzedEmail.subject,body:lastAnalyzedEmail.body,is_phishing:isPhishing}) });
+  alert('Thank you for your feedback');
+}
+
+// ── MODALS ────────────────────────────────────────────────────
+function closeModal(id) { document.getElementById(id).classList.remove('show'); }
+document.querySelectorAll('.modal-backdrop').forEach(m => {
+  m.addEventListener('click', e => { if (e.target === m) m.classList.remove('show'); });
+});
+
+// ── COLLAPSIBLE ───────────────────────────────────────────────
+function toggleCollapsible(btn) {
+  const body = btn.nextElementSibling;
+  const chev = btn.querySelector('.chevron');
+  btn.classList.toggle('open');
+  body.classList.toggle('open');
+  chev.classList.toggle('open');
+}
+
+// ── UTILS ─────────────────────────────────────────────────────
+function truncate(t, n) { return t?.length > n ? t.substring(0,n-3)+'...' : t||''; }
+function esc(t) { const d = document.createElement('div'); d.textContent = t; return d.innerHTML; }
+
+// ── CHART ─────────────────────────────────────────────────────
+let threatChart = null;
+
+function buildChart(scans) {
+  const ctx = document.getElementById('threatChart');
+  if (!ctx) return;
+
+  const recent = scans.slice(0, 20).reverse();
+  const labels = recent.map(s => {
+    const d = new Date(s.timestamp);
+    return `${d.getMonth()+1}/${d.getDate()} ${d.getHours()}:${String(d.getMinutes()).padStart(2,'0')}`;
+  });
+  const scores = recent.map(s => s.risk_score || 0);
+  const colors = scores.map(s =>
+    s >= 80 ? '#991b1b' : s >= 60 ? '#dc2626' : s >= 40 ? '#d97706' : '#16a34a'
+  );
+
+  if (threatChart) threatChart.destroy();
+
+  threatChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{
+        label: 'Threat Score',
+        data: scores,
+        backgroundColor: colors,
+        borderRadius: 4,
+        borderSkipped: false,
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            title: (items) => recent[items[0].dataIndex]?.target || '',
+            label: (item) => `Score: ${item.raw}/100`
+          }
+        }
+      },
+      scales: {
+        y: {
+          min: 0, max: 100,
+          grid: { color: '#e4e4e0' },
+          ticks: { font: { size: 11 } }
+        },
+        x: {
+          grid: { display: false },
+          ticks: { font: { size: 10 }, maxRotation: 45 }
+        }
+      }
+    }
+  });
+}
+
+// ── ATTACHMENT ────────────────────────────────────────────────
+let attachFileData = null;
+let attachFileName = null;
+
+const attachDrop  = document.getElementById('attachDrop');
+const attachInput = document.getElementById('attachInput');
+
+if (attachDrop) {
+  attachDrop.addEventListener('click', () => attachInput.click());
+  attachDrop.addEventListener('dragover', e => { e.preventDefault(); attachDrop.classList.add('over'); });
+  attachDrop.addEventListener('dragleave', () => attachDrop.classList.remove('over'));
+  attachDrop.addEventListener('drop', e => {
+    e.preventDefault(); attachDrop.classList.remove('over');
+    if (e.dataTransfer.files[0]) handleAttachFile(e.dataTransfer.files[0]);
+  });
+  attachInput.addEventListener('change', e => { if (e.target.files[0]) handleAttachFile(e.target.files[0]); });
+}
+
+function handleAttachFile(file) {
+  if (file.size > 10 * 1024 * 1024) return alert('File too large. Maximum size is 10MB.');
+  attachFileName = file.name;
+
+  const reader = new FileReader();
+  reader.onload = e => {
+    attachFileData = e.target.result;
+    document.getElementById('attachFilename').textContent = file.name;
+    document.getElementById('attachFileSize').textContent = (file.size / 1024).toFixed(1) + ' KB';
+    document.getElementById('attachFileInfo').style.display = 'flex';
+    attachDrop.style.display = 'none';
+    document.getElementById('attachScanBtn').disabled = false;
+  };
+  reader.readAsDataURL(file);
+}
+
+function clearAttach() {
+  attachFileData = null; attachFileName = null;
+  document.getElementById('attachFileInfo').style.display = 'none';
+  attachDrop.style.display = 'block';
+  document.getElementById('attachScanBtn').disabled = true;
+  document.getElementById('attachResult').classList.remove('show');
+}
+
+async function scanAttachment() {
+  if (!attachFileData || !attachFileName) return;
+  showLoading('Analyzing attachment...');
+  try {
+    const res  = await fetch('/analyze-attachment', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ filename: attachFileName, file_data: attachFileData })
+    });
+    const data = await res.json();
+    if (data.success) displayAttachResult(data);
+    else alert('Error: ' + data.error);
+  } catch(e) { alert('Failed to analyze attachment'); }
+  finally { hideLoading(); }
+}
+
+function displayAttachResult(d) {
+  const card = document.getElementById('attachResult');
+  card.classList.add('show');
+  const score = d.risk_score || 0;
+  const rc = riskClass(score);
+
+  document.getElementById('attachResultHeader').className = `result-header ${rc}`;
+
+  const icons = { CRITICAL:'🚨', HIGH:'⚠️', MEDIUM:'🔶', LOW:'💡', SAFE:'✅' };
+  document.getElementById('attachIcon').textContent  = icons[d.risk_level] || '📄';
+  document.getElementById('attachLevel').textContent = d.risk_level;
+  document.getElementById('attachLevel').style.color = riskColor(score);
+  document.getElementById('attachScore').textContent = score;
+  document.getElementById('attachScore').style.color = riskColor(score);
+  document.getElementById('attachSummary').textContent = d.summary;
+
+  document.getElementById('attachFileDetails').innerHTML = `
+    <div class="info-cell"><div class="info-cell-label">Filename</div><div class="info-cell-val">${esc(d.filename)}</div></div>
+    <div class="info-cell"><div class="info-cell-label">File Size</div><div class="info-cell-val">${d.file_size_kb} KB</div></div>
+    <div class="info-cell"><div class="info-cell-label">Type</div><div class="info-cell-val">${esc(d.extension||'Unknown')}</div></div>
+    <div class="info-cell"><div class="info-cell-label">MD5 Hash</div><div class="info-cell-val" style="font-family:monospace;font-size:.75rem">${esc(d.file_hash)}</div></div>
+    <div class="info-cell"><div class="info-cell-label">Has Macros</div><div class="info-cell-val" style="color:${d.has_macros?'var(--danger)':'var(--safe)'}">${d.has_macros?'Yes ⚠️':'No'}</div></div>
+    <div class="info-cell"><div class="info-cell-label">Has Scripts</div><div class="info-cell-val" style="color:${d.has_scripts?'var(--danger)':'var(--safe)'}">${d.has_scripts?'Yes ⚠️':'No'}</div></div>
+  `;
+
+  const fl = document.getElementById('attachFindings'); fl.innerHTML = '';
+  if (d.risk_factors?.length) {
+    d.risk_factors.forEach(r => {
+      const el = document.createElement('div');
+      el.className = 'finding';
+      el.innerHTML = `<div class="finding-dot ${score>=60?'red':''}"></div><span>${esc(r)}</span>`;
+      fl.appendChild(el);
+    });
+  } else {
+    fl.innerHTML = '<div class="finding"><span style="color:var(--safe)">✓ No risk factors detected</span></div>';
+  }
+
+  card.scrollIntoView({ behavior:'smooth', block:'nearest' });
+}
+
+// ── WEBHOOK ───────────────────────────────────────────────────
+function saveWebhook() {
+  const url = document.getElementById('webhookUrl').value.trim();
+  if (!url) return alert('Enter a webhook URL');
+  localStorage.setItem('pip_webhook_url', url);
+  showWebhookStatus('✓ Webhook URL saved', 'success');
+}
+
+function testWebhook() {
+  const url = document.getElementById('webhookUrl').value.trim();
+  if (!url) return alert('Enter a webhook URL first');
+  fetch('/webhook/test', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ webhook_url: url })
+  })
+  .then(r => r.json())
+  .then(d => {
+    if (d.success) showWebhookStatus('✓ Test message sent to Slack successfully', 'success');
+    else showWebhookStatus('✗ ' + d.error, 'error');
+  })
+  .catch(() => showWebhookStatus('✗ Connection failed', 'error'));
+}
+
+function showWebhookStatus(msg, type) {
+  const el = document.getElementById('webhookStatus');
+  el.innerHTML = `<div class="webhook-status ${type}">${msg}</div>`;
+}
+
+async function maybeSendWebhookAlert(scanType, target, riskLevel, riskScore, riskFactors) {
+  const webhookUrl = localStorage.getItem('pip_webhook_url');
+  if (!webhookUrl) return;
+  if (riskScore < 60) return; // Only alert on HIGH and CRITICAL
+
+  try {
+    await fetch('/webhook/alert', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        webhook_url: webhookUrl,
+        scan_type: scanType,
+        target,
+        risk_level: riskLevel,
+        risk_score: riskScore,
+        risk_factors: riskFactors
+      })
+    });
+  } catch(e) {
+    console.warn('Webhook alert failed:', e);
+  }
+}
+
+// ── INIT ──────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  loadStats();
+  // Restore saved webhook URL
+  const saved = localStorage.getItem('pip_webhook_url');
+  const webhookInput = document.getElementById('webhookUrl');
+  if (saved && webhookInput) webhookInput.value = saved;
+});
+</script>
+</body>
+</html>

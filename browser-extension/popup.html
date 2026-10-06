@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Phishing Link Analyzer</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    
+    body {
+      width: 350px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #0f172a;
+      color: #f1f5f9;
+    }
+    
+    .header {
+      background: #1e293b;
+      padding: 15px;
+      text-align: center;
+      border-bottom: 1px solid #334155;
+    }
+    
+    .header h1 {
+      font-size: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+    
+    .content { padding: 15px; }
+    
+    .input-group { margin-bottom: 15px; }
+    
+    .input-group input {
+      width: 100%;
+      padding: 10px 12px;
+      background: #334155;
+      border: 1px solid #475569;
+      border-radius: 6px;
+      color: #f1f5f9;
+      font-size: 13px;
+    }
+    
+    .input-group input:focus {
+      outline: none;
+      border-color: #3b82f6;
+    }
+    
+    .btn-group {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 15px;
+    }
+    
+    .btn {
+      flex: 1;
+      padding: 10px;
+      border: none;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    
+    .btn-primary { background: #3b82f6; color: white; }
+    .btn-primary:hover { background: #2563eb; }
+    .btn-secondary { background: #475569; color: white; }
+    .btn-secondary:hover { background: #64748b; }
+    
+    .result {
+      background: #1e293b;
+      border-radius: 8px;
+      padding: 15px;
+      display: none;
+    }
+    
+    .result.show { display: block; }
+    
+    .result-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+    
+    .risk-badge {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .risk-icon { font-size: 24px; }
+    .risk-level { font-size: 14px; font-weight: 600; }
+    .risk-score { font-size: 24px; font-weight: 700; font-family: monospace; }
+    
+    .url-display {
+      background: #334155;
+      padding: 8px 10px;
+      border-radius: 4px;
+      font-size: 11px;
+      word-break: break-all;
+      margin-bottom: 12px;
+      color: #94a3b8;
+    }
+    
+    .findings { margin-top: 10px; }
+    .findings h4 { font-size: 12px; color: #94a3b8; margin-bottom: 8px; }
+    
+    .finding-item {
+      background: #334155;
+      padding: 8px 10px;
+      border-radius: 4px;
+      font-size: 12px;
+      margin-bottom: 6px;
+      display: flex;
+      align-items: flex-start;
+      gap: 6px;
+    }
+    
+    .open-full {
+      display: block;
+      width: 100%;
+      text-align: center;
+      padding: 10px;
+      background: #1e293b;
+      color: #3b82f6;
+      text-decoration: none;
+      border-radius: 6px;
+      font-size: 13px;
+      margin-top: 10px;
+    }
+    
+    .open-full:hover { background: #334155; }
+    
+    .loading {
+      text-align: center;
+      padding: 30px;
+      color: #94a3b8;
+    }
+    
+    .loading-spinner {
+      width: 30px;
+      height: 30px;
+      border: 3px solid #334155;
+      border-top-color: #3b82f6;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 15px;
+    }
+    
+    @keyframes spin { to { transform: rotate(360deg); } }
+    
+    .error {
+      background: rgba(239, 68, 68, 0.1);
+      border: 1px solid #ef4444;
+      color: #fca5a5;
+      padding: 12px;
+      border-radius: 6px;
+      font-size: 13px;
+      text-align: center;
+    }
+    
+    .footer {
+      text-align: center;
+      padding: 10px;
+      font-size: 11px;
+      color: #64748b;
+      border-top: 1px solid #334155;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>🛡️ Phishing Link Analyzer</h1>
+  </div>
+  
+  <div class="content">
+    <div class="input-group">
+      <input type="text" id="urlInput" placeholder="Paste URL to analyze...">
+    </div>
+    
+    <div class="btn-group">
+      <button class="btn btn-primary" id="analyzeBtn">🔍 Analyze</button>
+      <button class="btn btn-secondary" id="quickBtn">⚡ Quick</button>
+    </div>
+    
+    <div class="loading" id="loading" style="display: none;">
+      <div class="loading-spinner"></div>
+      <p>Analyzing URL...</p>
+    </div>
+    
+    <div class="result" id="result">
+      <div class="result-header">
+        <div class="risk-badge">
+          <span class="risk-icon" id="riskIcon">🔍</span>
+          <span class="risk-level" id="riskLevel">Analyzing...</span>
+        </div>
+        <span class="risk-score" id="riskScore">--</span>
+      </div>
+      
+      <div class="url-display" id="urlDisplay"></div>
+      <div class="findings" id="findings"></div>
+      <a href="#" class="open-full" id="openFull" target="_blank">Open Full Analysis →</a>
+    </div>
+    
+    <div class="error" id="error" style="display: none;"></div>
+  </div>
+  
+  <div class="footer">
+    Right-click any link → "Analyze Link for Phishing"
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

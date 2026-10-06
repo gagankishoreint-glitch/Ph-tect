@@ -1,0 +1,27 @@
+[
+  {
+    "category": "phishing",
+    "url": "http://paypal-verification-secure-portal.com/login",
+    "description": "Domain spoofing with keyword stuffing and unencrypted HTTP"
+  },
+  {
+    "category": "phishing",
+    "url": "http://198.51.100.12/account/update-billing",
+    "description": "Direct IP address in URL host without valid domain name"
+  },
+  {
+    "category": "phishing",
+    "url": "https://accounts.google.com.security-alerts-review.top/signin",
+    "description": "Subdomain brand spoofing with untrusted top-level domain (.top)"
+  },
+  {
+    "category": "legitimate",
+    "url": "https://github.com",
+    "description": "Legitimate major web platform with valid SSL/TLS and established WHOIS"
+  },
+  {
+    "category": "legitimate",
+    "url": "https://www.wikipedia.org",
+    "description": "Legitimate knowledge platform with well-established DNS authority"
+  }
+]

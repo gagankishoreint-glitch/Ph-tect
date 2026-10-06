@@ -1,0 +1,31 @@
+Delivered-To: victim@company.com
+Received: by 2002:a05:6512:1234 with SMTP id ab123;
+        Tue, 06 Oct 2026 09:30:15 -0700 (PDT)
+Return-Path: <bounce@attacker-spoofed-mail.xyz>
+Received: from mail.attacker-spoofed-mail.xyz (unknown [185.220.101.5])
+        by mx.google.com with ESMTP id z9si12345678plm.45.2026.10.06.09.30.14
+        for <victim@company.com>;
+        Tue, 06 Oct 2026 09:30:14 -0700 (PDT)
+Received-SPF: softfail (google.com: domain of transitioning bounce@attacker-spoofed-mail.xyz does not designate 185.220.101.5 as permitted sender) client-ip=185.220.101.5;
+Authentication-Results: mx.google.com;
+       spf=softfail (google.com: domain of transitioning bounce@attacker-spoofed-mail.xyz does not designate 185.220.101.5 as permitted sender) smtp.mailfrom=bounce@attacker-spoofed-mail.xyz;
+       dkim=fail header.i=@attacker-spoofed-mail.xyz;
+       dmarc=fail (p=NONE sp=NONE dis=NONE) header.from=paypal-security.com
+From: "PayPal Security Support" <security@paypal-security.com>
+Reply-To: support-desk@attacker-spoofed-mail.xyz
+To: victim@company.com
+Subject: URGENT: Your PayPal Account Has Been Temporarily Suspended! Verify Identity
+Date: Tue, 06 Oct 2026 12:30:00 -0400
+Message-ID: <20261006123000.12345.qmail@attacker-spoofed-mail.xyz>
+MIME-Version: 1.0
+Content-Type: text/html; charset=UTF-8
+
+<html>
+<body>
+<p>Dear Customer,</p>
+<p>We detected unauthorized login attempts to your PayPal account from an unrecognized IP address (198.51.100.44).</p>
+<p>For your security, your account will remain restricted until you confirm your identity. Failure to verify within 24 hours will result in permanent account termination.</p>
+<p><a href="http://login-paypal-security-verification.com/auth/login">CLICK HERE TO VERIFY YOUR ACCOUNT IMMEDIATELY</a></p>
+<p>Sincerely,<br>PayPal Security Management</p>
+</body>
+</html>
